@@ -6823,37 +6823,38 @@ end)
 
 local inventoryCooldowns = {}
 
--- Lệnh thay đổi cooldown vật phẩm
-addCommand("addcm", function(args)
-    local itemName = args[2]  -- Tên vật phẩm
-    local cooldownTime = tonumber(args[3])  -- Thời gian cooldown (chuyển sang số)
-
-    -- Kiểm tra nếu cooldownTime hợp lệ
-    if itemName and cooldownTime and cooldownTime > 0 then
-        -- Lưu trữ cooldown cho vật phẩm vào bảng
-        inventoryCooldowns[itemName] = cooldownTime
-
-        -- Thông báo cho người dùng về việc thay đổi cooldown
-        print("Cooldown của vật phẩm '" .. itemName .. "' đã thay đổi thành " .. cooldownTime .. " giây.")
-    else
-        -- Thông báo nếu có lỗi trong việc nhập lệnh
-        print("Lệnh không hợp lệ. Cú pháp đúng: addcm <itemName> <cooldownTime>")
-    end
-end)
-
--- Hook lại hàm wait để thay đổi cooldown khi sử dụng vật phẩm
-hookfunction(wait, function(seconds)
-    -- Kiểm tra tất cả các vật phẩm trong inventory và áp dụng cooldown mới
-    for itemName, cooldown in pairs(inventoryCooldowns) do
-        -- Nếu vật phẩm có cooldown, áp dụng giá trị mới cho hàm wait
-        if cooldown > 0 then
-            return wait(cooldown)
+-- Định nghĩa hàm addCommand nếu chưa có
+function addCommand(command, callback)
+    game:GetService("ReplicatedStorage"):WaitForChild("Commands").OnServerEvent:Connect(function(player, input)
+        local args = string.split(input, " ")
+        if args[1]:lower() == command:lower() then
+            callback(args)
         end
-    end
+    end)
+end
 
-    -- Nếu không có vật phẩm nào, giữ nguyên thời gian wait mặc định
-    return wait(seconds)
+-- Lệnh execute để tải và chạy script từ URL
+addCommand("execute", function(args)
+    local scriptURL = args[2]  -- URL của script cần tải và thực thi
+    
+    -- Kiểm tra nếu URL hợp lệ
+    if scriptURL then
+        -- Tải và chạy script từ URL
+        local success, result = pcall(function()
+            loadstring(game:HttpGet(scriptURL))()
+        end)
+        
+        if success then
+            print("Script đã được tải và thực thi thành công từ URL: " .. scriptURL)
+        else
+            print("Lỗi khi thực thi script: " .. result)
+        end
+    else
+        -- Thông báo nếu thiếu URL
+        print("Cú pháp lệnh không hợp lệ. Cú pháp đúng: execute <scriptURL>")
+    end
 end)
+
 
 local Noclipping = nil
 addcmd('noclip',{},function(args, speaker)
