@@ -6821,6 +6821,40 @@ addcmd("exit", {}, function(args, speaker)
     game:Shutdown()
 end)
 
+local inventoryCooldowns = {}
+
+-- Lệnh thay đổi cooldown vật phẩm
+addCommand("addcm", function(args)
+    local itemName = args[2]  -- Tên vật phẩm
+    local cooldownTime = tonumber(args[3])  -- Thời gian cooldown (chuyển sang số)
+
+    -- Kiểm tra nếu cooldownTime hợp lệ
+    if itemName and cooldownTime and cooldownTime > 0 then
+        -- Lưu trữ cooldown cho vật phẩm vào bảng
+        inventoryCooldowns[itemName] = cooldownTime
+
+        -- Thông báo cho người dùng về việc thay đổi cooldown
+        print("Cooldown của vật phẩm '" .. itemName .. "' đã thay đổi thành " .. cooldownTime .. " giây.")
+    else
+        -- Thông báo nếu có lỗi trong việc nhập lệnh
+        print("Lệnh không hợp lệ. Cú pháp đúng: addcm <itemName> <cooldownTime>")
+    end
+end)
+
+-- Hook lại hàm wait để thay đổi cooldown khi sử dụng vật phẩm
+hookfunction(wait, function(seconds)
+    -- Kiểm tra tất cả các vật phẩm trong inventory và áp dụng cooldown mới
+    for itemName, cooldown in pairs(inventoryCooldowns) do
+        -- Nếu vật phẩm có cooldown, áp dụng giá trị mới cho hàm wait
+        if cooldown > 0 then
+            return wait(cooldown)
+        end
+    end
+
+    -- Nếu không có vật phẩm nào, giữ nguyên thời gian wait mặc định
+    return wait(seconds)
+end)
+
 local Noclipping = nil
 addcmd('noclip',{},function(args, speaker)
 	Clip = false
@@ -6850,53 +6884,6 @@ addcmd('togglenoclip',{},function(args, speaker)
 	else
 		execCmd('clip')
 	end
-end)
-
-local inventory = {} -- Giả lập inventory (thay bằng inventory thực tế)
-local cooldownEndTime = 0 -- Thời gian kết thúc cooldown toàn bộ vật phẩm
-
--- Hàm để áp dụng cooldown cho toàn bộ inventory
-local function setCooldownForAll(cooldownTime)
-    local currentTime = tick() -- Lấy thời gian hiện tại
-    if currentTime >= cooldownEndTime then
-        cooldownEndTime = currentTime + cooldownTime
-        -- Cooldown đã được áp dụng
-    else
-        -- Cooldown vẫn còn hiệu lực, không làm gì thêm
-    end
-end
-
--- Hàm mô phỏng lệnh
-addCommand("cooldownall", function(args)
-    local cooldownTime = tonumber(args[1]) -- Thời gian hồi (số giây)
-    if cooldownTime then
-        setCooldownForAll(cooldownTime)
-    end
-end)
-
-addCommand("killplayer", function(args)
-    local playerName = args[1] -- Tên của người chơi
-    if playerName then
-        -- Tìm người chơi trong game
-        local player = game.Players:FindFirstChild(playerName)
-        if player and player.Character and player.Character:FindFirstChild("Humanoid") then
-            -- Giảm máu của người chơi về 0
-            player.Character.Humanoid.Health = 0
-        end
-    end
-end)
-
-addCommand("execute", function(args)
-    local scriptCode = table.concat(args, " ") -- Ghép các tham số thành một chuỗi script
-    if scriptCode and scriptCode ~= "" then
-        local success, err = pcall(function()
-            loadstring(scriptCode)() -- Thực thi script
-        end)
-        if not success then
-            -- Báo lỗi nếu có vấn đề xảy ra
-            print("Lỗi khi thực thi script: " .. err)
-        end
-    end
 end)
 
 FLYING = false
